@@ -1,7 +1,8 @@
 /**
 * A COM port library for Windows written in C
 * Authored by William Barber 13/01/17
-*
+* Licence: This work is licensed under the MIT License. 
+* 	View this license at https://opensource.org/licenses/MIT
 * Implements:
 * + Opening COM ports with customisable baudrate, parity & stop bits
 * + Reading and writing to the COM port with non-blocking read operation
