@@ -1,5 +1,6 @@
 /**
-* A COM port library for Windows written in C
+* A COM port library for Windows and Posix based operating systems written in C
+* Tested on Windows 10, Ubuntu 16.04.1 and OS X
 * Authored by William Barber 13/01/17
 * Licence: This work is licensed under the MIT License. 
 * 	View this license at https://opensource.org/licenses/MIT
@@ -39,7 +40,7 @@ static struct termios termiosInitial;
 //Open a COM port of the supplied name and configures baud-rate, frame size, parity & stop bits settings and sets time-out values
 int init_COM_port(char* portName, int baudRate, uint8_t parityBit, uint8_t stopBits, uint8_t mode);
 //Tests if the opened COM port has received data, returns immediately if no data has been received else returns received data up to a size of length
-int poll_COM_port(unsigned char* buffer, uint16_t length);
+int poll_COM_port(char* buffer, uint16_t length);
 //Sends a buffer of data of length, returns the number of bytes transmitted or a negative error code
 int COM_port_send_buffer(char* buffer, uint8_t length);
 //Sends a byte of data , returns 1 if the byte is transmitted or a negative error code
@@ -50,9 +51,9 @@ int COM_port_send_word(uint16_t data);
 void close_COM_port();
 //Takes an ASCII string(null terminated) of hexadecimal characters and converts their values into a byte array, returning the length of the produced array.
 //Note: If the length of the string of characters is odd a '0' character is appended in the byte array to fill the byte
-int ascii2hex(unsigned char* str, uint8_t* data, uint8_t* len);
+int ascii2hex(char* str, uint8_t* data, uint8_t* len);
 //Takes a byte array and converts the byte values in to an ASCII string of hexadecimal characters, returning the length of the produced string.
-int hex2ascii(uint8_t* data, unsigned char* str, uint8_t len);
+int hex2ascii(uint8_t* data, char* str, uint8_t len);
 
 int init_COM_port(char* portName, int baudRate, uint8_t parityBit, uint8_t stopBits, uint8_t mode){
 	/*Options:
@@ -86,7 +87,7 @@ int init_COM_port(char* portName, int baudRate, uint8_t parityBit, uint8_t stopB
 		FILE_ATTRIBUTE_NORMAL,			//Starts COM port in non-overlappped mode (blocking functions)
 		0);								//Templates are unused when opening COM ports
 	if(hComm == INVALID_HANDLE_VALUE){//Failed to open COM port
-		fprintf(stderr,"Error opening COM port:%s, Error Code:%d\n", portName, GetLastError());
+		fprintf(stderr,"Error opening COM port:%s, Error Code:%lu\n", portName, GetLastError());
 		return -1;
 	}
 	
@@ -95,7 +96,7 @@ int init_COM_port(char* portName, int baudRate, uint8_t parityBit, uint8_t stopB
 	//Set-up DCB settings
 	DCB DCBsettings;
 	if (!GetCommState(hComm, &DCBinitial)){	//Get current DCB
-		fprintf(stderr,"Error retrieving DCB settings for COM port, Error Code:%d\n", GetLastError());//Failed to retrieve current COM port settings
+		fprintf(stderr,"Error retrieving DCB settings for COM port, Error Code:%lu\n", GetLastError());//Failed to retrieve current COM port settings
 		CloseHandle(hComm);
 		return -1;
 	}
@@ -113,7 +114,7 @@ int init_COM_port(char* portName, int baudRate, uint8_t parityBit, uint8_t stopB
 	DCBsettings.Parity = ((parityBit < 3)?parityBit:0);//Sets the parity type according to the DCB's format
 	DCBsettings.StopBits = ((stopBits == 2)?TWOSTOPBITS:ONESTOPBIT);//Sets the number of stop bits according to the DCB's format
 	if (!SetCommState(hComm, &DCBsettings)){//Set updated DCB
-		fprintf(stderr,"Error setting DCB settings for COM port, Error Code:%d\n", GetLastError());//Failed to set updated COM port settings
+		fprintf(stderr,"Error setting DCB settings for COM port, Error Code:%lu\n", GetLastError());//Failed to set updated COM port settings
 		CloseHandle(hComm);
 		return -1;
 	}
@@ -123,7 +124,7 @@ int init_COM_port(char* portName, int baudRate, uint8_t parityBit, uint8_t stopB
 	//Set-up time-outs
 	COMMTIMEOUTS timeouts;
 	if(!GetCommTimeouts(hComm, &TIMEOUTinitial)){//Get current time-outs
-		fprintf(stderr,"Error retrieving time-out settings for COM port, Error Code:%d\n", GetLastError());//Failed to retrieve current COM port time-outs
+		fprintf(stderr,"Error retrieving time-out settings for COM port, Error Code:%lu\n", GetLastError());//Failed to retrieve current COM port time-outs
 		CloseHandle(hComm);
 		return -1;
 	}
@@ -137,7 +138,7 @@ int init_COM_port(char* portName, int baudRate, uint8_t parityBit, uint8_t stopB
 	timeouts.WriteTotalTimeoutMultiplier = 0;	//Time allowed for each byte to be transmitted
 	timeouts.WriteTotalTimeoutConstant = 0;		//Time allowed for overhead on the transmission
 	if(!SetCommTimeouts(hComm, &timeouts)){//Set updated time-outs
-		fprintf(stderr,"Error setting time-out settings for COM port, Error Code:%d\n", GetLastError());//Failed to set updated COM port time-outs
+		fprintf(stderr,"Error setting time-out settings for COM port, Error Code:%lu\n", GetLastError());//Failed to set updated COM port time-outs
 		CloseHandle(hComm);
 		return -1;
 	}
@@ -207,7 +208,7 @@ int init_COM_port(char* portName, int baudRate, uint8_t parityBit, uint8_t stopB
 	return 0;
 }
 
-int poll_COM_port(unsigned char* buffer, uint16_t length){
+int poll_COM_port(char* buffer, uint16_t length){
 #ifdef _WIN32
 	//ReadFile() syntax from https://msdn.microsoft.com/en-us/library/windows/desktop/aa365467(v=vs.85).aspx
 	DWORD len = 0;
@@ -316,7 +317,7 @@ void close_COM_port() {
 #endif
 }
 
-int ascii2hex(unsigned char* str, uint8_t* data, uint8_t* len){
+int ascii2hex(char* str, uint8_t* data, uint8_t* len){
 	//Reverse engineered from https://github.com/TBTerra/pictor, pictor.c, pictorDrawX() which is used in hex2ascii()
 	//An additional clause is added to handle a-f as well as A-F, all non-hex characters are ignored
 	//Bytes are in big endian format, where the most significant byte is sent first
@@ -354,7 +355,7 @@ int ascii2hex(unsigned char* str, uint8_t* data, uint8_t* len){
 	return j;
 }
 
-int hex2ascii(uint8_t* data, unsigned char* str, uint8_t len){
+int hex2ascii(uint8_t* data, char* str, uint8_t len){
 	//As 0-9 and A-F are contiguous sets of ASCII codes only loose remapping is required
 	//Code taken from https://github.com/TBTerra/pictor, pictor.c, pictorDrawX()
 	uint8_t i=0, j=0, x, y;
