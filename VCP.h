@@ -295,7 +295,7 @@ int COM_port_send_word(uint16_t data){
 		return 0-GetLastError();//if writing to the port failed a negative length is returned corresponding to the windows error code
 	}
 #else
-	int len = write(hComm, &data, 2);
+	int len = write(hComm, &buffer, 2);
 	if(len >= 0){
 		return (int)len;
 	}else{
