@@ -19,6 +19,7 @@
 #pragma once
 #include <string.h>
 #include <stdint.h>
+#include <stdio.h>
 
 #ifdef _WIN32
 #include <windows.h>
