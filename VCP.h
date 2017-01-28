@@ -23,7 +23,6 @@
 
 #ifdef _WIN32
 #include <windows.h>
-#include <conio.h>
 
 static HANDLE hComm = NULL;
 static DCB DCBinitial;
