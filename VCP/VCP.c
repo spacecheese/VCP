@@ -2,13 +2,16 @@
 * A COM port library for Windows and Posix based operating systems written in C
 * Tested on Windows 10, Ubuntu 16.04.1 and OS X
 * Authored by William Barber 13/01/17
+* Modified by James Watson 20/01/19:
+* + Added dll export
+*
 * Licence: This work is licensed under the MIT License. 
 * 	View this license at https://opensource.org/licenses/MIT
 * Implements:
 * + Opening COM ports with customisable baudrate, parity & stop bits
 * + Reading and writing to the COM port with non-blocking read operation
 * + Converting between hexadecimal and ascii
-* 
+*
 * ##Windows##
 * Information for the functions required to implement COM port functionality comes from https://msdn.microsoft.com/en-us/library/ff802693.aspx
 * For in depth information about all the COM port specific functions look at https://msdn.microsoft.com/en-us/library/windows/desktop/aa363194(v=vs.85).aspx
@@ -16,7 +19,6 @@
 * ##Posix##
 * Information for the functions and libraries required to implement COM port functionality comes from http://www.cmrr.umn.edu/~strupp/serial.html
 **/
-#pragma once
 #include <string.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -55,7 +57,7 @@ int ascii2hex(char* str, uint8_t* data, uint8_t* len);
 //Takes a byte array and converts the byte values in to an ASCII string of hexadecimal characters, returning the length of the produced string.
 int hex2ascii(uint8_t* data, char* str, uint8_t len);
 
-int init_COM_port(char* portName, int baudRate, uint8_t parityBit, uint8_t stopBits, uint8_t mode){
+__declspec(dllexport) int init_COM_port(char* portName, int baudRate, uint8_t parityBit, uint8_t stopBits, uint8_t mode){
 	/*Options:
 	Parity:
 		0 - No parity
@@ -208,7 +210,7 @@ int init_COM_port(char* portName, int baudRate, uint8_t parityBit, uint8_t stopB
 	return 0;
 }
 
-int poll_COM_port(char* buffer, uint16_t length){
+__declspec(dllexport) int poll_COM_port(char* buffer, uint16_t length){
 #ifdef _WIN32
 	//ReadFile() syntax from https://msdn.microsoft.com/en-us/library/windows/desktop/aa365467(v=vs.85).aspx
 	DWORD len = 0;
@@ -236,7 +238,7 @@ int poll_COM_port(char* buffer, uint16_t length){
 #endif
 }
 
-int COM_port_send_buffer(char* buffer, uint8_t length){
+__declspec(dllexport) int COM_port_send_buffer(char* buffer, uint8_t length){
 #ifdef _WIN32
 	//WriteFile() syntax from https://msdn.microsoft.com/en-us/library/windows/desktop/aa365747(v=vs.85).aspx
 	DWORD len = 0;
@@ -262,7 +264,7 @@ int COM_port_send_buffer(char* buffer, uint8_t length){
 #endif
 }
 
-int COM_port_send_byte(uint8_t data){
+__declspec(dllexport) int COM_port_send_byte(uint8_t data){
 #ifdef _WIN32
 	DWORD len = 0;
 	if(WriteFile(hComm, &data, 1, &len, NULL)){
@@ -280,7 +282,7 @@ int COM_port_send_byte(uint8_t data){
 #endif
 }
 
-int COM_port_send_word(uint16_t data){
+__declspec(dllexport) int COM_port_send_word(uint16_t data){
 	uint8_t buffer[2] = 
 	#ifdef COMPORT_BIG_ENDIAN
 	{(uint8_t)(data>>8),(uint8_t)(data & 0xFF)};//In big endian the most significant byte is sent first
@@ -304,7 +306,7 @@ int COM_port_send_word(uint16_t data){
 #endif
 }
 
-void close_COM_port() {
+__declspec(dllexport) void close_COM_port() {
 #ifdef _WIN32
 	SetCommState(hComm, &DCBinitial);//Reset the DCB to it's initial state
 	SetCommTimeouts(hComm, &TIMEOUTinitial);//Reset the time-outs to their initial states
@@ -315,57 +317,4 @@ void close_COM_port() {
 	close(hComm);//Close the port's file interface
 	hComm = -1;
 #endif
-}
-
-int ascii2hex(char* str, uint8_t* data, uint8_t* len){
-	//Reverse engineered from https://github.com/TBTerra/pictor, pictor.c, pictorDrawX() which is used in hex2ascii()
-	//An additional clause is added to handle a-f as well as A-F, all non-hex characters are ignored
-	//Bytes are in big endian format, where the most significant byte is sent first
-	uint8_t i=0, j=0, mid=0;
-	while(str[i]){
-		if((str[i] >= 48) && (str[i] <= 57)){//Character is 0-9
-			if(mid){//Byte packing
-				data[j++] |= (str[i] - 48);//lower half of the byte
-				mid = 0;
-			}else{
-				data[j] = ((str[i] - 48)<<4);//upper half of the byte
-				mid = 1;
-			}
-		}else if((str[i] >= 65) && (str[i] <= 70)){//Character is A-F
-			if(mid){//Byte packing
-				data[j++] |= (str[i] - 55);//lower half of the byte
-				mid = 0;
-			}else{
-				data[j] = ((str[i] - 55)<<4);//upper half of the byte
-				mid = 1;
-			}
-		}else if((str[i] >= 97) && (str[i] <= 102)){//Character is a-f
-			if(mid){//Byte packing
-				data[j++] |= (str[i] - 87);//lower half of the byte
-				mid = 0;
-			}else{
-				data[j] = ((str[i] - 87)<<4);//upper half of the byte
-				mid = 1;
-			}
-		}
-		i++;
-	}
-	if(mid)j++;
-	*len = j;//returns the array length to a pointer as well as from the function
-	return j;
-}
-
-int hex2ascii(uint8_t* data, char* str, uint8_t len){
-	//As 0-9 and A-F are contiguous sets of ASCII codes only loose remapping is required
-	//Code taken from https://github.com/TBTerra/pictor, pictor.c, pictorDrawX()
-	uint8_t i=0, j=0, x, y;
-	while(len--){
-		x = (data[i]&0xF0)>>4;//Break byte in half to map to each character
-		y = data[i]&0x0F;
-		i++;
-		str[j++]=(x>=10)?(x+55):(x+48);//convert to characters
-		str[j++]=(y>=10)?(y+55):(y+48);//0-9 have ASCII codes 48-57 and A-F have ASCII codes 65-70
-	}
-	str[j] = '\0';
-	return j;
 }
