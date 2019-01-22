@@ -182,7 +182,7 @@ namespace VCPWrapper
         }
 
         /// <summary>
-        /// Writes a word (two bytes) to the port. Use <see cref="SendBytes(byte[])"/> to send more than two.
+        /// Writes two bytes to the port. Use <see cref="SendBytes(byte[])"/> to send more than two.
         /// </summary>
         public void SendBytes(ushort data)
         {
