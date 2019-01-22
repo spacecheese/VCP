@@ -2,7 +2,6 @@
  * Author: James Watson 20/01/19
  * Licence: MIT (See License.txt or https://opensource.org/licenses/MIT)
  * 
- * Note: Targeted for .NET Framework 4.5 as lab PCs do not support .NET Standard 2.0 (required for System.Timers) at time of writing. This may change in future.
  */
 using System;
 using System.Text;
