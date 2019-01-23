@@ -78,7 +78,7 @@ namespace VCPWrapper
         public bool PortOpen { get; private set; } = false;
 
         private readonly Timer dataPoller;
-        private const double pollRate = 500;
+        private const double pollRate = 50;
         private const short bufferLength = 500;
 
 
@@ -173,7 +173,7 @@ namespace VCPWrapper
 
             if (data == null) throw new ArgumentNullException("data");
 
-            if (data.Length == 0) throw new ArgumentException("data must contain 1 or more bytes.");
+            if (data.Length == 0) return;
 
             if (data.Length > byte.MaxValue) throw new ArgumentException(String.Format("data must be less than {0} bytes in length.", byte.MaxValue));
 

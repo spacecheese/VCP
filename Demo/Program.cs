@@ -46,7 +46,7 @@ namespace Demo
                 
                 // Send the user input through the port.
                 // Note: Be careful with character encoding when sending strings. Only ASCII characters are supported in this implementation.
-                port.SendString(input);
+                port.SendString(input + "\n");
             }
 
             // Close the port when you finish.
@@ -56,8 +56,7 @@ namespace Demo
         static void DataRecived(object sender, DataRecivedEventArgs args)
         {
             // Handle the DataRecived event.
-            // Note: Il Matto may produce noise when being powered on which may cause abnormal characters to be detected by the host.
-            Console.Write(args.DataToString());
+            Console.Write(args.DataToString() + "\n");
         }
     }
 }
